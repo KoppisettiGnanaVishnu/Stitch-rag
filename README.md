@@ -133,6 +133,7 @@ All defaults live in `src/rag/config.py` (`RAGConfig`):
 - [x] Streaming answers and conversation memory
 - [x] Embedding persistence (no re-indexing per session)
 - [x] NumPy-vectorized similarity search
+- [ ] Logging, request metrics and basic auth
 - [ ] Repeatable evaluation benchmark with published metrics
 - [x] Docker Compose setup (app + Ollama sidecar, persistent volumes)
 - [x] FastAPI service mode (platform API: /index, /ask, /health)

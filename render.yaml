@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: stitch-rag
+    runtime: docker
+    plan: starter
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: STITCH_OLLAMA_URL
+        value: http://ollama:11434/api/generate
+      - key: STITCH_GENERATOR_MODEL
+        value: llama3.2:3b
+    # Note: Ollama must run as a separate service or be
+    # replaced with a hosted LLM endpoint. Render free
+    # tier is too small to run Ollama in-process.
