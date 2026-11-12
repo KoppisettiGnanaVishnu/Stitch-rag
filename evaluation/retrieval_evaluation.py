@@ -64,7 +64,7 @@ def evaluate_retrieval(pipeline, query):
 def main():
     pipeline = RAGPipeline("data/psy-ca1.pdf")
 
-    print("\nDOCUGUARD RETRIEVAL EVALUATION")
+    print("\nSTITCH RETRIEVAL EVALUATION")
     print("Document:", pipeline.file_path)
     print("Total chunks:", len(pipeline.chunks))
 

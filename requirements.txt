@@ -1,5 +1,6 @@
-
+streamlit
+sentence-transformers
 pypdf
 python-docx
-sentence-transformers
+numpy
 pytest

@@ -1,18 +1,27 @@
 [project]
 name = "rag"
 version = "0.1.0"
-description = "Add your description here"
+description = "Stitch — Enterprise Document Intelligence & Knowledge Retrieval Platform"
 readme = "README.md"
 authors = [
     { name = "Koppisetti Gnana Vishnu", email = "vishnugnana26@gmail.com" }
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "ipykernel>=7.3.0",
+    "streamlit>=1.40.0",
+    "sentence-transformers>=3.0.0",
+    "pypdf>=5.0.0",
+    "python-docx>=1.1.0",
+    "numpy>=1.26.0",
 ]
 
 [project.scripts]
 rag = "rag:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
 
 [build-system]
 requires = ["uv_build>=0.12.10,<0.13.0"]
