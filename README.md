@@ -135,7 +135,7 @@ All defaults live in `src/rag/config.py` (`RAGConfig`):
 - [x] NumPy-vectorized similarity search
 - [ ] Repeatable evaluation benchmark with published metrics
 - [x] Docker Compose setup (app + Ollama sidecar, persistent volumes)
-- [ ] FastAPI service mode (platform API: /index, /ask)
+- [x] FastAPI service mode (platform API: /index, /ask, /health)
 
 ## Deployment (Docker)
 
@@ -158,6 +158,23 @@ Override the model or port:
 ```bash
 STITCH_GENERATOR_MODEL=mistral:7b STITCH_PORT=9090 docker compose up -d
 ```
+
+## API mode (FastAPI)
+
+Stitch also ships as a REST service:
+
+```bash
+uvicorn rag.api:app --host 0.0.0.0 --port 8000
+```
+
+Endpoints:
+
+- `GET /health` — liveness check
+- `POST /index` — multipart upload of PDF/DOCX/TXT files → returns `index_id`
+- `POST /ask` — `{index_id, question, strategy, history}` → answer + sources + evaluation
+- `DELETE /index/{index_id}` — drop a cached index
+
+Interactive docs at `http://localhost:8000/docs`.
 
 ## License
 

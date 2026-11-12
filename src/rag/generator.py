@@ -125,6 +125,12 @@ QUESTION:
 ANSWER:
 """
 
+    def generate(self, query, context, history=None):
+        """
+        Blocking generation: returns the full answer
+        once Ollama finishes.
+        """
+
         prompt = self._build_prompt(
             query,
             context,
