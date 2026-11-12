@@ -163,7 +163,10 @@ class RAGPipeline:
 
         # Step 7: Initialize answer generator
         self.generator = Generator(
-            model=self.config.generator_model
+            model=self.config.generator_model,
+            api_url=self.config.ollama_url,
+            temperature=self.config.temperature,
+            timeout=self.config.request_timeout
         )
 
         # Step 8: Initialize answer evaluator

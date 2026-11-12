@@ -1,0 +1,67 @@
+services:
+
+  # ------------------------------------------------
+  # Ollama — local LLM runtime (sidecar)
+  # ------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: stitch-ollama
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ------------------------------------------------
+  # Pull the model once on first start
+  # ------------------------------------------------
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: stitch-ollama-pull
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "until ollama list >/dev/null 2>&1; do sleep 2; done;
+       ollama pull ${STITCH_GENERATOR_MODEL:-llama3.2:3b}"
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+
+  # ------------------------------------------------
+  # Stitch — the Streamlit app
+  # ------------------------------------------------
+  stitch:
+    build: .
+    container_name: stitch-app
+    restart: unless-stopped
+    depends_on:
+      ollama:
+        condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
+    environment:
+      STITCH_OLLAMA_URL: http://ollama:11434/api/generate
+      STITCH_GENERATOR_MODEL: ${STITCH_GENERATOR_MODEL:-llama3.2:3b}
+      STITCH_INDEX_DIR: /app/data/.index
+    ports:
+      - "${STITCH_PORT:-8501}:8501"
+    volumes:
+      - stitch_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  ollama_data:
+  stitch_data:

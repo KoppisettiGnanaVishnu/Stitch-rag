@@ -1,5 +1,7 @@
 # Stitch — Enterprise Document Intelligence & Knowledge Retrieval Platform
 
+[![CI](https://github.com/KoppisettiGnanaVishnu/Stitch-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/KoppisettiGnanaVishnu/Stitch-rag/actions/workflows/ci.yml)
+
 > *Connecting the threads of knowledge.*
 
 **Category:** Retrieval-Augmented Generation (RAG)
@@ -132,7 +134,30 @@ All defaults live in `src/rag/config.py` (`RAGConfig`):
 - [x] Embedding persistence (no re-indexing per session)
 - [x] NumPy-vectorized similarity search
 - [ ] Repeatable evaluation benchmark with published metrics
-- [ ] Docker Compose setup and FastAPI mode
+- [x] Docker Compose setup (app + Ollama sidecar, persistent volumes)
+- [ ] FastAPI service mode (platform API: /index, /ask)
+
+## Deployment (Docker)
+
+Run Stitch + Ollama with one command. The index and chat history are
+persisted in a named volume.
+
+```bash
+# Start everything (first run pulls llama3.2:3b — takes a few minutes)
+docker compose up -d
+
+# Open the app
+open http://localhost:8501
+
+# Stop
+docker compose down
+```
+
+Override the model or port:
+
+```bash
+STITCH_GENERATOR_MODEL=mistral:7b STITCH_PORT=9090 docker compose up -d
+```
 
 ## License
 
