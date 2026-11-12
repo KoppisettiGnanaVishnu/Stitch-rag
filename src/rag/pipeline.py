@@ -178,6 +178,18 @@ class RAGPipeline:
         return "\n\n".join(context_parts)
 
     # ==========================================
+    # RETRIEVE + BUILD CONTEXT (for streaming)
+    # ==========================================
+
+    def prepare(self, query):
+
+        results = self.retrieve(query)
+
+        context = self.create_context(results)
+
+        return results, context
+
+    # ==========================================
     # COMPLETE QUESTION-ANSWERING PIPELINE
     # ==========================================
 

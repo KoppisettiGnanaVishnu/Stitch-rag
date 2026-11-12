@@ -1545,32 +1545,53 @@ else:
             "content": question
         })
 
+        pipeline = st.session_state.pipeline
+
+        # Prior turns (excluding the question just asked,
+        # which is passed separately) for follow-up context
+
+        history = [
+            m for m in st.session_state.messages[:-1]
+            if not m.get("error")
+        ]
+
         try:
 
             with st.spinner(
                 "Searching your documents..."
             ):
 
-                pipeline = st.session_state.pipeline
-
-                # Pass recent turns so follow-up
-                # questions make sense
-                history = [
-                    m for m in st.session_state.messages
-                    if not m.get("error")
-                ]
-
-                # Retrieve, generate and evaluate in one step
-                detailed = pipeline.ask_detailed(
-                    question,
-                    history=history
+                results, context = pipeline.prepare(
+                    question
                 )
+
+            # STREAM THE ANSWER LIVE
+
+            with st.chat_message("assistant"):
+
+                full_answer = st.write_stream(
+                    pipeline.generator.generate_stream(
+                        question,
+                        context,
+                        history=history
+                    )
+                )
+
+            # Score the completed answer, then hand
+            # over to the persisted conversation view
+
+            evaluation = pipeline.evaluator.evaluate_answer(
+                question,
+                context,
+                full_answer,
+                results
+            )
 
             st.session_state.messages.append({
                 "role": "assistant",
-                "content": detailed["answer"],
-                "sources": detailed["results"],
-                "evaluation": detailed["evaluation"],
+                "content": full_answer,
+                "sources": results,
+                "evaluation": evaluation,
                 "error": False
             })
 

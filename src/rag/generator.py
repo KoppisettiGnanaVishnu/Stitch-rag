@@ -21,7 +21,7 @@ class Generator:
         self.temperature = temperature
         self.timeout = timeout
 
-    def generate(self, query, context, history=None):
+    def _build_prompt(self, query, context, history=None):
 
         # CONVERSATION HISTORY FOR FOLLOW-UP QUESTIONS
 
@@ -57,7 +57,7 @@ class Generator:
                     + "\n"
                 )
 
-        prompt = f"""
+        return f"""
 You are Stitch, an enterprise document intelligence
 and knowledge retrieval assistant.
 
@@ -125,6 +125,12 @@ QUESTION:
 ANSWER:
 """
 
+        prompt = self._build_prompt(
+            query,
+            context,
+            history
+        )
+
         payload = {
             "model": self.model,
             "prompt": prompt,
@@ -154,6 +160,73 @@ ANSWER:
                 )
 
             return result["response"].strip()
+
+        except HTTPError as error:
+
+            raise RuntimeError(
+                f"Ollama API returned HTTP {error.code}. "
+                "Check that the model is available."
+            ) from error
+
+        except URLError as error:
+
+            raise RuntimeError(
+                "Cannot connect to Ollama. Open the Ollama app "
+                "and make sure its local service is running."
+            ) from error
+
+    def generate_stream(self, query, context, history=None):
+        """
+        Yield answer tokens as they are generated,
+        so the interface can render them live.
+        """
+
+        prompt = self._build_prompt(
+            query,
+            context,
+            history
+        )
+
+        payload = {
+            "model": self.model,
+            "prompt": prompt,
+            "stream": True,
+            "keep_alive": "30m",
+            "options": {
+                "temperature": self.temperature,
+                "num_predict": 600
+            }
+        }
+
+        request = Request(
+            self.api_url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json"
+            },
+            method="POST"
+        )
+
+        try:
+
+            with urlopen(request, timeout=self.timeout) as response:
+
+                for line in response:
+
+                    line = line.decode("utf-8").strip()
+
+                    if not line:
+                        continue
+
+                    data = json.loads(line)
+
+                    chunk = data.get("response", "")
+
+                    if chunk:
+                        yield chunk
+
+                    if data.get("done"):
+                        break
 
         except HTTPError as error:
 
