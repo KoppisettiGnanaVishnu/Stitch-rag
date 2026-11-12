@@ -1,0 +1,47 @@
+{
+  "document": "data/sample.txt",
+  "cases": [
+    {
+      "id": "attendance-threshold",
+      "question": "What is the minimum attendance required to attend final examinations?",
+      "expected_keywords": ["75%"],
+      "should_answer": true
+    },
+    {
+      "id": "library-hours",
+      "question": "When is the college library open?",
+      "expected_keywords": ["8 AM", "8 PM"],
+      "should_answer": true
+    },
+    {
+      "id": "library-entry",
+      "question": "What must a student carry to enter the library?",
+      "expected_keywords": ["identity card"],
+      "should_answer": true
+    },
+    {
+      "id": "exam-fee-deadline",
+      "question": "By when must the examination fee be paid?",
+      "expected_keywords": ["deadline"],
+      "should_answer": true
+    },
+    {
+      "id": "hall-ticket",
+      "question": "How can a student access the examination hall ticket?",
+      "expected_keywords": ["fee payment"],
+      "should_answer": true
+    },
+    {
+      "id": "unanswerable-capital",
+      "question": "What is the capital of France?",
+      "expected_keywords": [],
+      "should_answer": false
+    },
+    {
+      "id": "unanswerable-tuition",
+      "question": "What is the annual tuition fee?",
+      "expected_keywords": [],
+      "should_answer": false
+    }
+  ]
+}

@@ -1,17 +1,23 @@
 
+import logging
 import os
 import tempfile
+import time
 import uuid
+from collections import defaultdict, deque
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import (
+    Depends,
     FastAPI,
     File,
     HTTPException,
+    Request,
     UploadFile,
 )
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 from rag.config import RAGConfig
@@ -19,14 +25,78 @@ from rag.pipeline import RAGPipeline
 
 
 # ----------------------------------------------------
-# In-memory index registry. Each uploaded document set
-# becomes a pipeline keyed by an index_id. For a
-# single-tenant deployment this is enough; a
-# production system would persist pipelines or move
-# them behind a job queue.
+# Configuration
+# ----------------------------------------------------
+
+MAX_FILE_BYTES = int(
+    os.environ.get("STITCH_MAX_FILE_BYTES", 25 * 1024 * 1024)
+)
+
+API_TOKEN = os.environ.get("STITCH_API_TOKEN")
+
+RATE_LIMIT = int(os.environ.get("STITCH_RATE_LIMIT", "60"))
+
+RATE_WINDOW = 60  # seconds
+
+security = HTTPBearer(auto_error=False)
+
+logging.basicConfig(
+    level=os.environ.get("STITCH_LOG_LEVEL", "INFO"),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+
+logger = logging.getLogger("stitch.api")
+
+# ----------------------------------------------------
+# In-memory index registry
 # ----------------------------------------------------
 
 _PIPELINES: Dict[str, RAGPipeline] = {}
+
+# Simple per-IP sliding-window rate limiter
+
+_REQUEST_LOG: Dict[str, deque] = defaultdict(deque)
+
+
+def _rate_limit(request: Request):
+
+    client = request.client.host if request.client else "unknown"
+
+    now = time.time()
+
+    bucket = _REQUEST_LOG[client]
+
+    while bucket and bucket[0] < now - RATE_WINDOW:
+
+        bucket.popleft()
+
+    if len(bucket) >= RATE_LIMIT:
+
+        raise HTTPException(
+            status_code=429,
+            detail="Rate limit exceeded. Try again later."
+        )
+
+    bucket.append(now)
+
+
+def _auth(
+    credentials: Optional[HTTPAuthorizationCredentials] = None
+):
+
+    if API_TOKEN is None:
+
+        return
+
+    if (
+        credentials is None
+        or credentials.credentials != API_TOKEN
+    ):
+
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or missing API token."
+        )
 
 
 class AskRequest(BaseModel):
@@ -76,8 +146,16 @@ def create_app() -> FastAPI:
 
     @app.post("/index", response_model=IndexResponse)
     async def index_documents(
-        files: List[UploadFile] = File(...)
+        request: Request,
+        files: List[UploadFile] = File(...),
+        credentials: Optional[
+            HTTPAuthorizationCredentials
+        ] = Depends(security),
     ):
+
+        _rate_limit(request)
+
+        _auth(credentials)
 
         if not files:
 
@@ -97,14 +175,26 @@ def create_app() -> FastAPI:
 
             filename = upload.filename or "document"
 
-            target = temp_dir / filename
-
             content = await upload.read()
+
+            if len(content) > MAX_FILE_BYTES:
+
+                raise HTTPException(
+                    status_code=413,
+                    detail=(
+                        f"{filename} exceeds the "
+                        f"{MAX_FILE_BYTES} byte limit."
+                    )
+                )
+
+            target = temp_dir / filename
 
             target.write_bytes(content)
 
             saved_paths.append(target)
             source_names.append(filename)
+
+        started = time.time()
 
         try:
 
@@ -114,6 +204,8 @@ def create_app() -> FastAPI:
             )
 
         except Exception as error:
+
+            logger.exception("indexing failed")
 
             raise HTTPException(
                 status_code=422,
@@ -128,6 +220,14 @@ def create_app() -> FastAPI:
             chunk["source"] for chunk in pipeline.chunks
         })
 
+        logger.info(
+            "indexed %d files -> %d chunks in %.2fs (%s)",
+            len(files),
+            len(pipeline.chunks),
+            time.time() - started,
+            index_id,
+        )
+
         return IndexResponse(
             index_id=index_id,
             chunks=len(pipeline.chunks),
@@ -135,9 +235,19 @@ def create_app() -> FastAPI:
         )
 
     @app.post("/ask", response_model=AskResponse)
-    def ask_question(request: AskRequest):
+    def ask_question(
+        request: Request,
+        body: AskRequest,
+        credentials: Optional[
+            HTTPAuthorizationCredentials
+        ] = Depends(security),
+    ):
 
-        pipeline = _PIPELINES.get(request.index_id)
+        _rate_limit(request)
+
+        _auth(credentials)
+
+        pipeline = _PIPELINES.get(body.index_id)
 
         if pipeline is None:
 
@@ -146,31 +256,40 @@ def create_app() -> FastAPI:
                 detail="Unknown index_id. Call /index first."
             )
 
-        strategy = request.strategy.lower()
+        strategy = body.strategy.lower()
+
+        started = time.time()
 
         if strategy == "mmr":
 
             results = pipeline.retrieve_mmr(
-                request.question
+                body.question
             )
 
         else:
 
-            results = pipeline.retrieve(request.question)
+            results = pipeline.retrieve(body.question)
 
         context = pipeline.create_context(results)
 
         answer = pipeline.generator.generate(
-            request.question,
+            body.question,
             context,
-            history=request.history
+            history=body.history
         )
 
         evaluation = pipeline.evaluator.evaluate_answer(
-            request.question,
+            body.question,
             context,
             answer,
             results
+        )
+
+        logger.info(
+            "ask %s strategy=%s in %.2fs",
+            body.index_id,
+            strategy,
+            time.time() - started,
         )
 
         return AskResponse(
@@ -180,7 +299,17 @@ def create_app() -> FastAPI:
         )
 
     @app.delete("/index/{index_id}")
-    def delete_index(index_id: str):
+    def delete_index(
+        index_id: str,
+        request: Request,
+        credentials: Optional[
+            HTTPAuthorizationCredentials
+        ] = Depends(security),
+    ):
+
+        _rate_limit(request)
+
+        _auth(credentials)
 
         removed = _PIPELINES.pop(index_id, None)
 
@@ -190,6 +319,8 @@ def create_app() -> FastAPI:
                 status_code=404,
                 detail="Unknown index_id."
             )
+
+        logger.info("deleted index %s", index_id)
 
         return {"deleted": index_id}
 

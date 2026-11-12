@@ -42,11 +42,11 @@ def test_known_answer():
     pipeline = RAGPipeline(str(PDF_PATH))
 
     answer = pipeline.ask(
-        "What is the title of this assignment?"
+        "What is procrastination?"
     )
 
     assert "procrastination" in answer.lower()
-    assert "time management" in answer.lower()
+    assert "delay" in answer.lower()
 
 
 

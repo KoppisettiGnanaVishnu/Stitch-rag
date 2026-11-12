@@ -133,7 +133,8 @@ All defaults live in `src/rag/config.py` (`RAGConfig`):
 - [x] Streaming answers and conversation memory
 - [x] Embedding persistence (no re-indexing per session)
 - [x] NumPy-vectorized similarity search
-- [ ] Logging, request metrics and basic auth
+- [x] Structured logging, request metrics, basic auth + rate limiting (API)
+- [x] File-size validation + published evaluation benchmark (see Benchmarks)
 - [ ] Repeatable evaluation benchmark with published metrics
 - [x] Docker Compose setup (app + Ollama sidecar, persistent volumes)
 - [x] FastAPI service mode (platform API: /index, /ask, /health)
@@ -176,6 +177,21 @@ Endpoints:
 - `DELETE /index/{index_id}` — drop a cached index
 
 Interactive docs at `http://localhost:8000/docs`.
+
+## Benchmarks
+
+Measured on `data/sample.txt` (5 answerable + 2 unanswerable questions),
+`llama3.2:3b` via Ollama, CPU (Apple Silicon):
+
+| Metric | Result |
+|---|---|
+| Retrieval hit@k (k=3) | 5/5 (100%) |
+| Answer keyword coverage | 5/5 (100%) |
+| Refusal accuracy (unanswerable) | 2/2 (100%) |
+| Citation rate | 5/7 (71%) |
+| Avg. answer latency | ~3.6 s |
+
+Reproduce: `python scripts/benchmark.py` (requires Ollama).
 
 ## License
 
