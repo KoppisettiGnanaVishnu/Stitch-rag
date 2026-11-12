@@ -26,3 +26,6 @@ htmlcov/
 # Local test documents
 data/psy-ca1.pdf
 data/test.docx
+
+# Runtime state
+data/chat_history.json
