@@ -30,9 +30,20 @@ def load_history():
 
         try:
 
-            return json.loads(
+            saved_messages = json.loads(
                 HISTORY_FILE.read_text(encoding="utf-8")
             )
+
+            # Errors from a previous session are stale —
+            # they describe problems that were likely
+            # already fixed by the restart. Replay only
+            # the real conversation.
+
+            return [
+                message
+                for message in saved_messages
+                if not message.get("error")
+            ]
 
         except (json.JSONDecodeError, OSError):
 
@@ -150,8 +161,9 @@ p, label {
 /* BRAND — STITCH MARK */
 
 .brand {
+    width: fit-content;
     border-bottom: 4px dashed #111111;
-    padding-bottom: 3px;
+    padding-bottom: 2px;
 }
 
 /* STITCH MOTIF — DASHED DIVIDERS */
@@ -165,6 +177,7 @@ hr {
 
 header[data-testid="stHeader"] {
     background: #ffffff;
+    border-bottom: 2px dashed rgba(236, 28, 36, 0.35);
 }
 
 /* SIDEBAR */
@@ -314,36 +327,50 @@ hr {
 
 .top-nav {
     width: 100%;
-    min-height: 76px;
+    min-height: 72px;
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: 1fr auto;
     align-items: center;
     column-gap: 24px;
     padding: 8px 0;
     box-sizing: border-box;
 }
 
+/* Brand + tagline stacked, sharing a baseline */
+
+.brand-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
 .brand {
     display: block;
     margin: 0;
-    padding: 0;
+    padding: 0 0 2px 0;
     font-size: 30px;
     font-weight: 900;
     letter-spacing: -2px;
-    line-height: 1.2 !important;
+    line-height: 1.1 !important;
     color: #111111;
     white-space: nowrap;
+}
+
+/* The period — the single red accent of the wordmark */
+
+.brand-dot {
+    color: #ec1c24;
 }
 
 .brand-small {
     margin: 0;
     padding: 0;
-    font-size: 10px;
-    letter-spacing: 2px;
+    font-size: 9px;
+    letter-spacing: 2.4px;
     font-weight: 700;
     line-height: 1.4;
     color: #777777;
-    text-align: center;
+    text-align: left;
     white-space: nowrap;
 }
 
@@ -553,13 +580,39 @@ hr {
     animation: fadeUp 0.7s ease 0.5s both;
 }
 
-/* SECTION LABELS */
+/* SECTION LABELS — with a red stitch dash */
 
 .section-label {
     font-size: 11px;
     letter-spacing: 2px;
     font-weight: 800;
     color: #888888;
+    margin: 4px 0 14px 0;
+}
+
+.section-label::before {
+    content: "";
+    display: inline-block;
+    width: 20px;
+    border-top: 3px dashed #ec1c24;
+    vertical-align: middle;
+    margin-right: 9px;
+}
+
+/* SIDEBAR GEOMETRY */
+
+section[data-testid="stSidebar"] .block-container {
+    padding-top: 1.7rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+}
+
+.side-brand {
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    color: #111111;
+    margin-bottom: 20px;
 }
 
 .source-meta {
@@ -897,6 +950,136 @@ div[data-testid="stMetric"]:hover {
     margin: 10px 0 0 0;
 }
 
+/* EXPANDERS — unified card language */
+
+[data-testid="stExpander"] {
+    background: #ffffff;
+    border: 1px solid #e8e8e8;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+[data-testid="stExpander"]:hover {
+    border-color: #dddddd;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
+}
+
+/* ============================================
+   POLISH LAYER — scrollbars, selection, shine
+   ============================================ */
+
+/* Thin custom scrollbars everywhere */
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #d8d8d8;
+    border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #ec1c24;
+}
+
+/* Nike-red text selection */
+
+::selection {
+    background: #ec1c24;
+    color: #ffffff;
+}
+
+/* Sidebar geometry — tighter, focused */
+
+section[data-testid="stSidebar"] {
+    width: 300px !important;
+    min-width: 300px !important;
+}
+
+/* Button shine sweep on hover */
+
+.stButton > button {
+    position: relative;
+    overflow: hidden;
+}
+
+.stButton > button::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -80%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+        120deg,
+        transparent,
+        rgba(255, 255, 255, 0.35),
+        transparent
+    );
+    transform: skewX(-20deg);
+    transition: left 0.6s ease;
+}
+
+.stButton > button:hover::after {
+    left: 130%;
+}
+
+/* STITCH TICKER — scrolling capability band */
+
+.ticker-wrap {
+    overflow: hidden;
+    background: #111111;
+    border-radius: 14px;
+    padding: 14px 0;
+    margin-top: 40px;
+}
+
+.ticker {
+    display: inline-flex;
+    white-space: nowrap;
+    animation: tickerScroll 24s linear infinite;
+}
+
+.ticker span {
+    color: #ffffff;
+    font-style: italic;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    padding: 0 26px;
+}
+
+.ticker span::after {
+    content: "✦";
+    color: #ec1c24;
+    margin-left: 52px;
+}
+
+@keyframes tickerScroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+
+/* Chat section title — brand italic weight */
+
+.ask-title {
+    font-size: 30px;
+    font-weight: 900;
+    font-style: italic;
+    letter-spacing: -1.5px;
+    color: #111111;
+    margin: 0 0 4px 0;
+    animation: fadeUp 0.5s ease both;
+}
+
 /* MOBILE */
 
 @media (max-width: 1100px) {
@@ -969,8 +1152,10 @@ else:
 
 st.markdown(
     '<div class="top-nav">'
-    '<div class="brand">STITCH.</div>'
+    '<div class="brand-block">'
+    '<div class="brand">STITCH<span class="brand-dot">.</span></div>'
     '<div class="brand-small">ENTERPRISE DOCUMENT INTELLIGENCE</div>'
+    '</div>'
     f'{workspace_status}'
     '</div>',
     unsafe_allow_html=True
@@ -985,8 +1170,19 @@ st.divider()
 
 with st.sidebar:
 
-    st.markdown("### YOUR WORKSPACE")
-    st.caption("DOCUMENT LIBRARY")
+    st.markdown(
+        '<div class="side-brand">STITCH<span class="brand-dot">.</span></div>',
+        unsafe_allow_html=True
+    )
+
+    # ==============================================
+    # SECTION 01 / LIBRARY
+    # ==============================================
+
+    st.markdown(
+        '<div class="section-label">01 / LIBRARY</div>',
+        unsafe_allow_html=True
+    )
 
     uploaded_files = st.file_uploader(
         "Upload documents",
@@ -995,13 +1191,6 @@ with st.sidebar:
     )
 
     if uploaded_files:
-
-        st.caption(
-            f"{len(uploaded_files)} FILES SELECTED"
-        )
-
-        for uploaded_file in uploaded_files:
-            st.write(f"📄 {uploaded_file.name}")
 
         if st.button(
             "PROCESS DOCUMENTS →",
@@ -1045,7 +1234,9 @@ with st.sidebar:
                     st.session_state.document_names = source_names
 
                 st.success(
-                    "Documents processed successfully."
+                    f"Workspace ready · "
+                    f"{len(source_names)} document(s) · "
+                    f"{len(pipeline.chunks)} passages indexed"
                 )
 
             except Exception as error:
@@ -1054,35 +1245,34 @@ with st.sidebar:
                     f"Document processing failed: {error}"
                 )
 
-    st.divider()
+    # Compact knowledge-base status — one line, no repetition
 
-    st.markdown("### LOADED DOCUMENTS")
-
-    if st.session_state.document_names:
-
-        for document_name in st.session_state.document_names:
-            st.write(f"📄 {document_name}")
+    if st.session_state.pipeline is not None:
 
         st.caption(
-            f"{len(st.session_state.document_names)} DOCUMENTS"
+            f"🧠 {len(st.session_state.pipeline.chunks)} passages · "
+            f"{len(st.session_state.document_names)} documents indexed"
         )
-
-    else:
-
-        st.caption("No documents uploaded.")
 
     st.divider()
 
-    st.markdown("### RETRIEVAL SETTINGS")
+    # ==============================================
+    # SECTION 02 / ASSISTANT
+    # ==============================================
+
+    st.markdown(
+        '<div class="section-label">02 / ASSISTANT</div>',
+        unsafe_allow_html=True
+    )
 
     retrieval_mode = st.radio(
         "Retrieval strategy",
         ["normal", "diverse (MMR)"],
         index=0 if st.session_state.retrieval_mode == "normal" else 1,
         help=(
-            "Normal picks the 3 most similar passages. "
-            "Diverse (MMR) balances relevance with variety, "
-            "useful when passages tend to repeat each other."
+            "Normal picks the most similar passages. "
+            "Diverse (MMR) trades a little relevance for "
+            "variety when passages repeat."
         )
     )
 
@@ -1105,26 +1295,12 @@ with st.sidebar:
 
     st.divider()
 
-    if st.session_state.pipeline is not None:
-
-        st.markdown("### KNOWLEDGE BASE")
-
-        st.metric(
-            "INDEXED PASSAGES",
-            len(st.session_state.pipeline.chunks)
-        )
-
-        st.success("Knowledge base ready")
-
-    else:
-
-        st.caption(
-            "Upload documents to activate your workspace."
-        )
+    st.caption("STITCH · LOCAL-FIRST · V0.1")
 
 
 # ==================================================
-# 6. HERO SECTION
+# 6. HERO SECTION — shown until the workspace
+#    is active, then the chat takes over
 # ==================================================
 
 hero_html = (
@@ -1163,56 +1339,46 @@ hero_html = (
     'Fully local retrieval and generation.</div>'
     '</div>'
     '</div>'
+    '<div class="ticker-wrap"><div class="ticker">'
+    '<span>Cited answers</span>'
+    '<span>Trust scores</span>'
+    '<span>Local-first</span>'
+    '<span>MMR retrieval</span>'
+    '<span>Source pages</span>'
+    '<span>Grounded AI</span>'
+    '<span>Cited answers</span>'
+    '<span>Trust scores</span>'
+    '<span>Local-first</span>'
+    '<span>MMR retrieval</span>'
+    '<span>Source pages</span>'
+    '<span>Grounded AI</span>'
+    '</div></div>'
     '</div>'
 )
 
-st.markdown(
-    hero_html,
-    unsafe_allow_html=True
-)
+if st.session_state.pipeline is None:
+
+    st.markdown(
+        hero_html,
+        unsafe_allow_html=True
+    )
 
 
 # ==================================================
-# 7. WORKSPACE STATISTICS
-# ==================================================
-
-if st.session_state.pipeline is not None:
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.metric(
-            "DOCUMENTS",
-            len(st.session_state.document_names)
-        )
-
-    with col2:
-        st.metric(
-            "INDEXED PASSAGES",
-            len(st.session_state.pipeline.chunks)
-        )
-
-    with col3:
-        st.metric(
-            "STATUS",
-            "READY"
-        )
-
-    st.divider()
-
-
-# ==================================================
-# 8. DOCUMENT ASSISTANT
+# 7. DOCUMENT ASSISTANT
 # ==================================================
 
 st.markdown(
     '<div class="section-label">'
-    '01 / DOCUMENT ASSISTANT'
+    'DOCUMENT ASSISTANT'
     '</div>',
     unsafe_allow_html=True
 )
 
-st.markdown("## Ask anything.")
+st.markdown(
+    '<div class="ask-title">Ask anything.</div>',
+    unsafe_allow_html=True
+)
 
 st.caption(
     "Get answers directly from your uploaded documents."
@@ -1431,7 +1597,7 @@ else:
 
 footer_html = (
     '<div class="footer">'
-    '<span>STITCH.</span>'
+    '<span>STITCH<span class="brand-dot">.</span></span>'
     '<span>ENTERPRISE DOCUMENT INTELLIGENCE</span>'
     '</div>'
 )
