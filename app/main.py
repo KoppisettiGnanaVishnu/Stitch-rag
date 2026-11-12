@@ -1,4 +1,5 @@
 import html
+import json
 import sys
 import tempfile
 from pathlib import Path
@@ -16,6 +17,51 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 from rag.pipeline import RAGPipeline
 
 
+HISTORY_FILE = PROJECT_ROOT / "data" / "chat_history.json"
+
+
+def load_history():
+    """
+    Restore the previous conversation from disk so
+    chat history survives restarts and refreshes.
+    """
+
+    if HISTORY_FILE.exists():
+
+        try:
+
+            return json.loads(
+                HISTORY_FILE.read_text(encoding="utf-8")
+            )
+
+        except (json.JSONDecodeError, OSError):
+
+            return []
+
+    return []
+
+
+def save_history(messages):
+    """
+    Persist the conversation to disk after every turn.
+    """
+
+    try:
+
+        HISTORY_FILE.write_text(
+            json.dumps(
+                messages,
+                indent=2,
+                ensure_ascii=False
+            ),
+            encoding="utf-8"
+        )
+
+    except OSError:
+
+        pass  # history is best-effort, never break the app
+
+
 st.set_page_config(
     page_title="Stitch — Document Intelligence",
     page_icon="S",
@@ -31,7 +77,7 @@ st.set_page_config(
 defaults = {
     "pipeline": None,
     "document_names": [],
-    "messages": [],
+    "messages": load_history(),
     "retrieval_mode": "normal"
 }
 
@@ -998,9 +1044,6 @@ with st.sidebar:
                     st.session_state.pipeline = pipeline
                     st.session_state.document_names = source_names
 
-                    # Clear previous conversation
-                    st.session_state.messages = []
-
                 st.success(
                     "Documents processed successfully."
                 )
@@ -1048,6 +1091,17 @@ with st.sidebar:
         if retrieval_mode == "normal"
         else "mmr"
     )
+
+    if st.button(
+        "NEW CHAT",
+        use_container_width=True
+    ):
+
+        st.session_state.messages = []
+
+        save_history(st.session_state.messages)
+
+        st.rerun()
 
     st.divider()
 
@@ -1333,9 +1387,17 @@ else:
 
                 pipeline = st.session_state.pipeline
 
+                # Pass recent turns so follow-up
+                # questions make sense
+                history = [
+                    m for m in st.session_state.messages
+                    if not m.get("error")
+                ]
+
                 # Retrieve, generate and evaluate in one step
                 detailed = pipeline.ask_detailed(
-                    question
+                    question,
+                    history=history
                 )
 
             st.session_state.messages.append({
@@ -1346,6 +1408,8 @@ else:
                 "error": False
             })
 
+            save_history(st.session_state.messages)
+
         except Exception as error:
 
             st.session_state.messages.append({
@@ -1355,6 +1419,8 @@ else:
                 "evaluation": None,
                 "error": True
             })
+
+            save_history(st.session_state.messages)
 
         st.rerun()
 

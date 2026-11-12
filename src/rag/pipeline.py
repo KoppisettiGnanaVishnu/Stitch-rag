@@ -198,7 +198,7 @@ class RAGPipeline:
     # QUESTION-ANSWERING WITH FULL DETAILS
     # ==========================================
 
-    def ask_detailed(self, query):
+    def ask_detailed(self, query, history=None):
 
         results = self.retrieve(query)
 
@@ -206,7 +206,8 @@ class RAGPipeline:
 
         answer = self.generator.generate(
             query,
-            context
+            context,
+            history=history
         )
 
         evaluation = self.evaluator.evaluate_answer(

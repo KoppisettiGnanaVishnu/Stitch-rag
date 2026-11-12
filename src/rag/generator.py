@@ -21,7 +21,41 @@ class Generator:
         self.temperature = temperature
         self.timeout = timeout
 
-    def generate(self, query, context):
+    def generate(self, query, context, history=None):
+
+        # CONVERSATION HISTORY FOR FOLLOW-UP QUESTIONS
+
+        history_block = ""
+
+        if history:
+
+            turns = []
+
+            for turn in history[-4:]:
+
+                if turn.get("error"):
+                    continue
+
+                role = (
+                    "USER"
+                    if turn["role"] == "user"
+                    else "ASSISTANT"
+                )
+
+                turns.append(
+                    f"{role}: {turn['content']}"
+                )
+
+            if turns:
+
+                history_block = (
+                    "\nRECENT CONVERSATION "
+                    "(for understanding follow-up "
+                    "questions only — still answer "
+                    "ONLY from the document context):\n\n"
+                    + "\n\n".join(turns)
+                    + "\n"
+                )
 
         prompt = f"""
 You are Stitch, an enterprise document intelligence
@@ -83,7 +117,7 @@ ANSWER FORMAT:
 DOCUMENT CONTEXT:
 
 {context}
-
+{history_block}
 QUESTION:
 
 {query}
@@ -95,8 +129,10 @@ ANSWER:
             "model": self.model,
             "prompt": prompt,
             "stream": False,
+            "keep_alive": "30m",
             "options": {
-                "temperature": self.temperature
+                "temperature": self.temperature,
+                "num_predict": 600
             }
         }
 
