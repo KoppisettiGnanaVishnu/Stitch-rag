@@ -14,7 +14,66 @@ import streamlit as st
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
+import importlib
+
 from rag.pipeline import RAGPipeline
+
+# ==================================================
+# 0. LIVE CODE RELOADING
+#
+# Streamlit re-executes this script on every rerun,
+# but never re-imports modules — so changes to the
+# rag package would only appear after a full server
+# restart. Detect source changes, reload the modules,
+# and invalidate pipeline instances built with the
+# previous classes.
+# ==================================================
+
+RAG_MODULES = [
+    "rag.config",
+    "rag.document_loader",
+    "rag.chunker",
+    "rag.embeddings",
+    "rag.retriever",
+    "rag.generator",
+    "rag.evaluator",
+    "rag.pipeline",
+]
+
+
+def _source_fingerprint():
+
+    rag_dir = PROJECT_ROOT / "src" / "rag"
+
+    return max(
+        path.stat().st_mtime
+        for path in rag_dir.glob("*.py")
+    )
+
+
+def _ensure_fresh_code():
+
+    current = _source_fingerprint()
+
+    if current == st.session_state.get("code_version"):
+        return
+
+    for module_name in RAG_MODULES:
+
+        module = importlib.import_module(module_name)
+
+        importlib.reload(module)
+
+    st.session_state.code_version = current
+
+    # Instances built with the previous class definitions
+    # cannot gain new methods — they must be rebuilt.
+
+    if st.session_state.get("pipeline") is not None:
+
+        st.session_state.pipeline = None
+        st.session_state.document_names = []
+        st.session_state.code_updated = True
 
 
 HISTORY_FILE = PROJECT_ROOT / "data" / "chat_history.json"
@@ -95,6 +154,25 @@ defaults = {
 for key, value in defaults.items():
     if key not in st.session_state:
         st.session_state[key] = value
+
+
+# Apply any rag source changes and rebind the
+# pipeline class to the freshly loaded module
+
+_ensure_fresh_code()
+
+RAGPipeline = importlib.import_module(
+    "rag.pipeline"
+).RAGPipeline
+
+if st.session_state.pop("code_updated", False):
+
+    if hasattr(st, "toast"):
+
+        st.toast(
+            "Code updated — process your documents again.",
+            icon="⚠️"
+        )
 
 
 # ==================================================
