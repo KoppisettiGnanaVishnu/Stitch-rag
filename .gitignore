@@ -29,3 +29,6 @@ data/test.docx
 
 # Runtime state
 data/chat_history.json
+
+# Persistent vector index
+data/.index/

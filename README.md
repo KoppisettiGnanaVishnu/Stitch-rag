@@ -128,10 +128,9 @@ All defaults live in `src/rag/config.py` (`RAGConfig`):
 
 - [x] Evaluator wired into the UI with per-answer quality scores
 - [x] Central config (`RAGConfig`) for all pipeline settings
-- [ ] Embedding persistence (no re-indexing per session)
-- [ ] NumPy-vectorized similarity search
-- [ ] Hybrid retrieval (BM25 + embeddings) and cross-encoder reranking
-- [ ] Streaming answers and conversation memory
+- [x] Streaming answers and conversation memory
+- [x] Embedding persistence (no re-indexing per session)
+- [x] NumPy-vectorized similarity search
 - [ ] Repeatable evaluation benchmark with published metrics
 - [ ] Docker Compose setup and FastAPI mode
 

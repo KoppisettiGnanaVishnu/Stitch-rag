@@ -33,3 +33,10 @@ class RAGConfig:
     # Embeddings
 
     embedding_model: str = "all-MiniLM-L6-v2"
+
+    # Persistence — local flat vector store directory.
+    # Previously-seen documents (matched by content
+    # hash) are reloaded from here instead of being
+    # re-encoded.
+
+    index_dir: str = "data/.index"

@@ -103,7 +103,7 @@ It then applies **hallucination heuristics** (unsupported dates/years, unsupport
 
 **Conversation awareness:** recent turns are passed to the generator so follow-up questions ("what about the exam fee?") resolve correctly — while the prompt still forbids answering from history instead of documents.
 
-**Persistence:** chat history survives restarts (JSON on disk); embeddings rebuild per session by design in v1 (index persistence is on the roadmap).
+**Persistence:** chat history survives restarts (JSON on disk) and documents are embedded only once — the flat NumPy index (`data/.index/`, keyed by content hash) reloads previously-seen documents instantly.
 
 ---
 
@@ -158,12 +158,12 @@ The trust layer is also *transparent about its own limits*: the evaluator is exp
 - [x] Dual retrieval strategies (similarity + MMR) with UI toggle
 - [x] Chat history persistence + follow-up question awareness
 - [x] Streaming-friendly latency fixes (model warm-keeping)
+- [x] Live token streaming + persistent index store (flat NumPy vectors, content-hash keyed)
+- [x] NumPy-vectorized similarity search (with pure-Python reference fallback)
 - [x] Premium UI with motion design and trust panel
 - [x] Evaluator test suite + regression coverage
 
 **Next — Retrieval quality**
-- [ ] Embedding index persistence (no re-encoding per session)
-- [ ] NumPy-vectorized similarity search
 - [ ] Hybrid retrieval (BM25 + embeddings)
 - [ ] Cross-encoder reranking
 
