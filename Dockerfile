@@ -22,9 +22,8 @@ COPY .streamlit ./.streamlit
 # Create the data directory (chat history + vector index live here)
 RUN mkdir -p /app/data
 
-# Install deps (no dev group in production image)
-RUN uv sync --no-dev --no-install-project \
-    && uv pip install --system -e . --no-deps
+# Install deps + the project itself into the venv
+RUN uv sync --no-dev
 
 ENV PYTHONPATH=/app/src
 ENV STITCH_OLLAMA_URL=http://ollama:11434/api/generate

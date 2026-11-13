@@ -28,8 +28,7 @@ COPY .streamlit ./.streamlit
 
 RUN mkdir -p /app/data
 
-RUN uv sync --no-dev --no-install-project \
-    && uv pip install --system -e . --no-deps
+RUN uv sync --no-dev
 
 # Bake the LLM into the image: start ollama briefly,
 # pull the model, stop. The model then lives in
@@ -38,9 +37,9 @@ RUN uv sync --no-dev --no-install-project \
 ARG GENERATOR_MODEL=llama3.2:3b
 
 RUN ollama serve & \
-    sleep 5 \
+    until curl -s http://127.0.0.1:11434/api/tags >/dev/null 2>&1; do sleep 1; done \
     && ollama pull ${GENERATOR_MODEL} \
-    && pkill ollama
+    && pkill ollama || true
 
 ENV PYTHONPATH=/app/src
 ENV STITCH_OLLAMA_URL=http://127.0.0.1:11434/api/generate
