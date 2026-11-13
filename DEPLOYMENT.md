@@ -28,20 +28,32 @@ Resource note: `llama3.2:3b` needs ~4 GB RAM. A 4 vCPU / 8 GB
 instance is the comfortable minimum. First start pulls the model
 (~2 GB) — allow 5 minutes.
 
-## Option B — Hugging Face Spaces (free, public URL)
+## Option B — Hugging Face Spaces (free, public URL) ✅ RECOMMENDED
 
-HF Spaces runs Docker images on CPU. Create a new Space with
-SDK = Docker, then push this repo. The Space will build the
-Dockerfile and expose port 7860 — add to the Dockerfile:
+Free CPU tier (2 vCPU / 16 GB), permanent public URL, well-recognized
+platform. Ollama runs inside the app container; the LLM is baked into
+the image at build time so restarts don't re-download 2 GB.
 
-```dockerfile
-ENV STREAMLIT_SERVER_PORT=7860
-```
+**Ready-to-use files:** `deploy/hf/` contains the Space Dockerfile,
+`start.sh`, and the Space `README.md` front-matter.
 
-Caveat: CPU-only inference for `llama3.2:3b` is slow (~30–60 s
-per answer). Fine for a demo link, not for real use. Consider
-switching `STITCH_GENERATOR_MODEL` to a smaller model or a
-hosted endpoint for the demo.
+Steps:
+
+1. Create a free account at https://huggingface.co
+2. Create a write token: Settings → Access Tokens → New (type: Write)
+3. Choose one:
+   - Give the token to your assistant → the Space is created and
+     pushed automatically (repo type: space, SDK: docker)
+   - Or manually: create a new Space (SDK = Docker, CPU basic),
+     clone it, copy the repo contents + `deploy/hf/*` files in
+     (`deploy/hf/SPACE_README.md` becomes the Space's `README.md`),
+     and push.
+
+Notes:
+- Free Spaces sleep after 48 h of inactivity and wake on the first
+  visit (first answer after a wake is slow — the model warms up).
+- Baked image ≈ 4 GB; build takes ~5–10 min the first time.
+- CPU-only inference: expect ~30–60 s per answer. Fine for a demo.
 
 ## Option C — Render / Fly.io (managed)
 
